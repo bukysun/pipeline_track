@@ -1,0 +1,137 @@
+import gym
+from gym import spaces
+from gym.utils import seeding
+import numpy as np
+import math
+import rospy
+import cv2
+from cv_bridge import CvBridge, CvBridgeError
+
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Image
+from sensor_msgs.msg import LaserScan
+from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Int8
+
+import ros_utils as sensors
+import random
+
+
+class UWsimAuvEnv(gym.Env):
+    
+    def __init__(self):
+        
+        #Initialize sensors
+        self.IG = sensors.imageGrabber()
+        self.State_p = sensors.GetPose()
+        self.State_v = sensors.GetVelocity()
+
+        # Publisher
+        self.Thruster_pub = rospy.Publisher("/vehicle1/thrusters_input",Float64MultiArray ,queue_size=1)
+        self.reset_pub = rospy.Publisher("/vehicle1/resetdata",Odometry ,queue_size=1)
+        self.pause_pub = rospy.Publisher("/pause",Int8,queue_size=1)
+        
+        # action space
+        self.action_space = spaces.Box(low = -np.array(np.ones(5)), high = np.array(np.ones(5)))
+
+        self.seed()
+
+
+    def seed(self, seed = None):
+        self.np_random, seed = seeding.np_random(seed)
+        return ([seed])
+
+    def step(self, action):
+
+        # show image
+        cv2.imshow("camera", self.IG.cv_image)
+        cv2.waitKey(3)
+            
+        #publish action
+        tau1, tau2, tau3, tau4, tau5 = np.clip(action, self.action_space.low, self.action_space.high)
+        a_msg = Float64MultiArray()
+        a_msg.data = [tau1, tau2, tau3, tau4, tau5]
+        self.Thruster_pub.publish(a_msg)
+        rospy.sleep(0.1)
+
+        #subscribe new state
+        self.state = np.append(self.State_p.p, self.State_v.v)
+
+        #calculate costs
+        costs = 1###
+
+        return self._get_obs(), -costs, False, None
+
+    def reset(self):
+
+        #set initial parameter
+        msg = Odometry()
+        self.state = np.array([1,1,7.5,0,0,1.27,0.1,0.2,0.3,0.4,0.5,0.6])###
+
+        x, y, z, phi, theta, psi, u, v, w, p, q, r = self.state
+
+        msg.pose.pose.position.x = x
+        msg.pose.pose.position.y = y
+        msg.pose.pose.position.z = z # 4.5
+        msg.pose.pose.orientation.w = np.cos(phi/2)*np.cos(psi/2)*np.cos(theta/2)+np.sin(phi/2)*np.sin(theta/2)*np.sin(psi/2)
+        msg.pose.pose.orientation.x = np.sin(phi/2)*np.cos(psi/2)*np.cos(theta/2)-np.cos(phi/2)*np.sin(theta/2)*np.sin(psi/2) 
+        msg.pose.pose.orientation.y = np.cos(phi/2)*np.cos(psi/2)*np.sin(theta/2)+np.sin(phi/2)*np.cos(theta/2)*np.sin(psi/2)
+        msg.pose.pose.orientation.z = np.cos(phi/2)*np.sin(psi/2)*np.cos(theta/2)-np.sin(phi/2)*np.sin(theta/2)*np.cos(psi/2)
+
+        msg.twist.twist.linear.x = u
+        msg.twist.twist.linear.y = v
+        msg.twist.twist.linear.z = w
+        msg.twist.twist.angular.x = p
+        msg.twist.twist.angular.y = q
+        msg.twist.twist.angular.z = r
+
+        self.reset_pub.publish(msg)
+
+        #publish reset_flag
+        flag = Int8()
+        flag.data = 1
+        self.pause_pub.publish(flag)
+        return self._get_obs()
+        
+    def _get_obs(self):
+        return self.state
+
+
+def main():
+    import time
+    EPISODES = 10
+    env = UWsimAuvEnv()
+    steps = 100
+    #num_states = env.observation_space.shape[0]
+    num_actions = env.action_space.shape[0]
+    #print ("Number of States:", num_states)
+    print ("Number of Actions:", num_actions)
+    print ("Number of Steps per episode:", steps)
+    
+    for episode in range(EPISODES):
+        time.sleep(1)
+        state = env.reset()
+        time.sleep(1)
+        total_reward = 0
+        epi_buffer = list()
+        for step in range(steps):
+            tau1 = random.uniform(-1,1)
+            tau2 = random.uniform(-1,1)
+            action = np.array([tau1,tau1,tau2,tau2,0])
+            next_state,reward,done,_= env.step(action)
+            total_reward += reward      
+            state = next_state       
+        print ('episode: ', episode+1, '  Train Reward:',total_reward)
+
+
+
+
+if __name__ == "__main__":
+    rospy.init_node("sample")
+    main()
+
+
+
+
