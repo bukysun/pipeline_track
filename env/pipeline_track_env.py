@@ -18,13 +18,13 @@ class PipelineTrackEnv(gym.Env):
         return ([seed])
 
     def reset(self):
-        init_state = [0,1,7.8,0,0,1.27,0, 0.0,0.0,0.0,0.0,0.0] 
+        init_state = [-0.8,-3.5,7.8,0,0, 1.27 ,0, 0.0,0.0,0.0,0.0,0.0] 
         self.state = self.dynamics.reset_sim(init_state)
 
     def step(self, action):
         action = np.clip(action, self.action_space.low, self.action_space.high)
-        self.state, reward = self.dynamics.frame_step(action)
-        return self._get_obs(), reward, False, None
+        self.state, reward, done, info = self.dynamics.frame_step(action)
+        return self._get_obs(), reward, done, info
 
     def _get_obs(self):
         return np.array(self.state)
@@ -34,7 +34,7 @@ class PipelineTrackEnv(gym.Env):
 def main():
     import time
     import random
-    EPISODES = 1
+    EPISODES = 5
     env = PipelineTrackEnv()
     steps = 100
     #num_states = env.observation_space.shape[0]
@@ -52,8 +52,10 @@ def main():
         for step in range(steps):
             tau1 = random.uniform(-1,1)
             tau2 = random.uniform(-1,1)
-            action = np.array([0.8,0.8,0,0,0])
+            action = np.array([-0.8,-0.8,0,0,0])
             next_state,reward,done,_= env.step(action)
+            if done:
+                break
             total_reward += reward      
             state = next_state       
         print ('episode: ', episode+1, '  Train Reward:',total_reward)

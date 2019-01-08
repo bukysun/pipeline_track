@@ -25,7 +25,7 @@ def lines_filter(lines):
     #find the most occured angle
     cnt_max_ind = np.argmax(cnts)
     if cnt_max_ind + 1 >= len(cnts):
-        raise Exception, "index out of array length"
+        raise IndexError, "index out of array length"
     cad_ind = (lines[:, 1] >= edgs[cnt_max_ind]) * (lines[:, 1] < edgs[cnt_max_ind + 1]) 
     edg_max = edgs[cnt_max_ind]
     res_lines = lines[cad_ind, :]
@@ -48,7 +48,7 @@ def lines_filter(lines):
     for i in np.where(cnts>0)[0]:
         if abs(abs(edgs[i] - edg_max) - np.pi) <= np.pi / 12:
             if i + 1 >= len(cnts):
-                raise Exception, "index out of array length"
+                raise IndexError, "index out of array length"
             cad_ind2 = (lines[:, 1] >= edgs[i]) * (lines[:, 1] < edgs[i + 1]) 
             res_lines2 = lines[cad_ind2, :]
             return res_lines, res_lines2
@@ -126,8 +126,17 @@ def line_xy2polar(p1, p2):
         theta = np.arctan2(y, x)
     return (rho, theta)
 
+def dist_p2line(p, p1, p2):
+    """calculate the distance from point p to line defined by p1 and p2"""
+    x0, y0 = p
+    x1, y1 = p1
+    x2, y2 = p2
+    rp = np.sqrt(np.square(x1-x2) + np.square(y1-y2))
+    dist = abs((y2-y1) * x0 - (x2 - x1)*y0 + x2*y1-x1*y2) / rp
+    return dist
 
 def line_polar2xy(rho, theta):
+    #print(rho)
     a = np.cos(theta)
     b = np.sin(theta)
     x0 = a*rho
@@ -138,9 +147,35 @@ def line_polar2xy(rho, theta):
     y2 = int(y0 - 1000*(a)) 
     return (x1, y1, x2, y2)
 
+def get_reward(img, u):
+    """
+    The function for calculate reward. u is the forward velocity of the auv
+    The definition of reward:
+            
+                    r = u * (|cos(theta) - d/max_d|)    
+    """
+    try:
+        extract_res = cenline_extract(img, "polar")
+        if extract_res is not None:
+            rho, theta = extract_res
+            x1, y1, x2, y2 = line_polar2xy(rho, theta)
+            height, width = img.shape[:2]
+            d = dist_p2line((width/2, height/2), (x1, y1), (x2, y2))
+            max_d = np.sqrt((width/2)**2 + (height/2)**2)
+            rew = u * (abs(np.cos(theta)) - d / max_d)
+            return rew
+        else:
+            return None
+    except IndexError:
+        return None
+     
+
+
 if __name__ == "__main__":
-    img = cv2.imread("fail.jpg")
-    res = process_img(img)
+    img = cv2.imread("/home/uwsim/workspace/results/pipeline_track/record2/img16.jpg")
+    print(img.shape)
+    res = cenline_extract(img, "points")
+    print(get_reward(img, 1))
 
     if res is not None:
         x1, y1, x2, y2 = res

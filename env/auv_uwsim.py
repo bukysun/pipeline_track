@@ -15,7 +15,7 @@ from std_msgs.msg import Int8
 
 import ros_utils as sensors
 
-from env_utils import cenline_extract 
+from env_utils import cenline_extract, get_reward 
 
 
 class AuvUwsim(object):
@@ -35,6 +35,7 @@ class AuvUwsim(object):
     def reset_sim(self, init_state):
         self.state = init_state
         self.step = 0
+        self.last_rew = None
         #set initial parameter
         msg = Odometry()
 
@@ -67,40 +68,22 @@ class AuvUwsim(object):
         # show image
         #cv2.imshow("camera", self.IG.cv_image)
         #cv2.imshow("depthImage", self.DI.depth_image)
-       
-        #process depth image
-        #di = copy.deepcopy(self.DI.depth_image)
-        #di = (di - di.min()) / (di.max()-di.min()) * 255.0 + 0
-        #di = np.uint8(di)
-        #lines = lines_extract(di)
-        #print(di.shape)
-        #print(self.IG.cv_image.shape)
-
-        #plot lines on the image 
-        #cv2.imwrite("tmp.jpg", self.IG.cv_image)
-        #img = cv2.imread("tmp.jpg")
-        img = copy.deepcopy(self.IG.cv_image)
-        #if lines is not None:
-        #    for l in lines:
-        #        x1, y1, x2, y2 = l[0]
-        #        cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)        
-        res = cenline_extract(img, "points")
-        if res is not None:
-            x1, y1, x2, y2 = res
-            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        else:
-            cv2.imwrite("fail.jpg", img)
-            img = cv2.imread("fail.jpg")
-            res = cenline_extract(img, "points")
-            if res is not None:
-                x1, y1, x2, y2 = res
-                cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        #res = cenline_extract(img, "points")
+        #if res is not None:
+        #    x1, y1, x2, y2 = res
+        #    cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        #else:
+        #    cv2.imwrite("fail.jpg", img)
+        #    img = cv2.imread("fail.jpg")
+        #    res = cenline_extract(img, "points")
+        #    if res is not None:
+        #        x1, y1, x2, y2 = res
+        #        cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
    
-        cv2.imshow("src", img)
-        #cv2.imshow("tar", res_img)
-        cv2.waitKey(3)
-        cv2.imwrite("record3/img%i.jpg" % self.step, img)
-
+        #cv2.imshow("src", img)
+        ##cv2.imshow("tar", res_img)
+        #cv2.waitKey(3)
+        
         #publish action
         tau1, tau2, tau3, tau4, tau5 = action
         a_msg = Float64MultiArray()
@@ -112,13 +95,30 @@ class AuvUwsim(object):
 
         #subscribe new state
         self.state = np.append(self.State_p.p, self.State_v.v)
- 
-        #calculate costs
-        costs = 1###
+
+        # get reward
+        x, y, z, phi, theta, psi, u, v, w, p, q, r = self.state
+        img = copy.deepcopy(self.IG.cv_image)
+        cv2.imwrite("/home/uwsim/workspace/results/pipeline_track/record3/img%i.jpg" % self.step, img)
+        cv2.imshow("src", img)
+        cv2.waitKey(3)
+        rew = get_reward(img, u)
+        print("rew:", rew, "\t u:", u)
+
+        done = False
+        if rew is None:
+            if self.last_rew is not None:
+                rew = self.last_rew
+                self.last_rew = None
+            else:
+                done = True
+        else:
+            self.last_rew = rew
+        
 
         self.step += 1
 
-        return self.state, -costs
+        return self.state, rew, done, {}
 
 
 
