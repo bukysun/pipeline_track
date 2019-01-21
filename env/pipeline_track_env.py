@@ -9,8 +9,13 @@ class PipelineTrackEnv(gym.Env):
     def __init__(self):
         self.dynamics = AuvUwsim()
 
+        # observation space is a tuple
+        ob_space1 = spaces.Box(low=-np.inf, high=np.inf, shape = (5,), dtype=np.float)
+        ob_space2 = spaces.Box(low=0, high=255, shape=(240, 320, 3), dtype=np.uint8) 
+        self.observation_space = (ob_space1, ob_space2)
+
         # action space
-        self.action_space = spaces.Box(low = -np.array(np.ones(5)), high = np.array(np.ones(5)))
+        self.action_space = spaces.Box(low = -np.array(np.ones(2)), high = np.array(np.ones(2)))
         self.seed()
 
     def seed(self, seed = None):
@@ -18,53 +23,20 @@ class PipelineTrackEnv(gym.Env):
         return ([seed])
 
     def reset(self):
-        init_state = [-0.8,-3.5,7.8,0,0, 1.27 ,0, 0.0,0.0,0.0,0.0,0.0] 
-        self.state = self.dynamics.reset_sim(init_state)
+        self.state, self.camera = self.dynamics.reset_sim()
+        return self._get_obs()
 
     def step(self, action):
         action = np.clip(action, self.action_space.low, self.action_space.high)
-        self.state, reward, done, info = self.dynamics.frame_step(action)
+        self.state, self.camera, reward, done, info = self.dynamics.frame_step(action)
         return self._get_obs(), reward, done, info
 
     def _get_obs(self):
-        return np.array(self.state)
+        assert self.camera != [], "get null img"
+        x, y, psi, u, v, r = self.state
+        ret_state = [np.cos(psi), np.sin(psi), u, v, r]
+        return ret_state, self.camera
 
 
 
-def main():
-    import time
-    import random
-    EPISODES = 5
-    env = PipelineTrackEnv()
-    steps = 100
-    #num_states = env.observation_space.shape[0]
-    num_actions = env.action_space.shape[0]
-    #print ("Number of States:", num_states)
-    print ("Number of Actions:", num_actions)
-    print ("Number of Steps per episode:", steps)
-    
-    for episode in range(EPISODES):
-        time.sleep(1)
-        state = env.reset()
-        time.sleep(1)
-        total_reward = 0
-        epi_buffer = list()
-        for step in range(steps):
-            tau1 = random.uniform(-1,1)
-            tau2 = random.uniform(-1,1)
-            action = np.array([-0.8,-0.8,0,0,0])
-            next_state,reward,done,_= env.step(action)
-            if done:
-                break
-            total_reward += reward      
-            state = next_state       
-        print ('episode: ', episode+1, '  Train Reward:',total_reward)
-
-
-
-
-if __name__ == "__main__":
-    import rospy
-    rospy.init_node("sample")
-    main()
 

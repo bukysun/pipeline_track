@@ -1,0 +1,240 @@
+
+Starting UWSim...
+Loading SimulatedDevices plugin: 'DredgeTool_Factory'
+Loading SimulatedDevices plugin: 'ForceSensor_Factory'
+Loading SimulatedDevices plugin: 'SimDev_Echo_Factory'
+  . Setting localized world: 3.3e-05s
+Loading URDF robot... 
+  · robot/GIRONA500/g500_March11.osg: 1.33918s
+  · Linking links...Robot successfully loaded. Total time: 0.001562s
+1.3408s
+Loading URDF robot... 
+  · objects/dot.3ds: 0.004644s
+  · Linking links...Robot successfully loaded. Total time: 0.000662s
+0.005336s
+No protocol specified
+No protocol specified
+2019-01-21 18:37:53.632453: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+... logging to /home/uwsim/.ros/log/d0536100-1d40-11e9-81d3-40167e6499a8/roslaunch-wuhui-lab-17721.log
+[1mstarted roslaunch server http://wuhui-lab:39177/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /dynamics/current_max: [0.0, 0.0, 0.0]
+ * /dynamics/current_mean: [0.05, 0, 0]
+ * /dynamics/current_min: [0.0, 0.0, 0.0]
+ * /dynamics/current_sigma: [0.002, 0.001, 0....
+ * /rosdistro: kinetic
+ * /rosversion: 1.12.14
+ * /vehicle/dynamics/Ma: [49.0, 0.0, 0.0, ...
+ * /vehicle/dynamics/Mrb: [98.0, 0.0, 0.0, ...
+ * /vehicle/dynamics/actuators_gain: [1500, 1500, 1500...
+ * /vehicle/dynamics/actuators_maxsat: [1, 1, 1, 1, 1]
+ * /vehicle/dynamics/actuators_minsat: [-1, -1, -1, -1, -1]
+ * /vehicle/dynamics/actuators_tau: [0.2, 0.2, 0.2, 0...
+ * /vehicle/dynamics/allocation_matrix:  [-ct[0]*abs(du[0...
+ * /vehicle/dynamics/ctb: 6.835e-05
+ * /vehicle/dynamics/ctf: 6.835e-05
+ * /vehicle/dynamics/damping: [0.0, 0.0, 0.0, -...
+ * /vehicle/dynamics/density: 1000.0
+ * /vehicle/dynamics/dh: 0.4
+ * /vehicle/dynamics/dv: 0.35
+ * /vehicle/dynamics/dzv: 0.05
+ * /vehicle/dynamics/external_force_topic: /vehicle/external...
+ * /vehicle/dynamics/frame_id: vehicle_base_link
+ * /vehicle/dynamics/g: 9.81
+ * /vehicle/dynamics/gravity_center: [0.0, 0.0, 0.05]
+ * /vehicle/dynamics/initial_pose: [0.0, 0.0, 0.0, 0...
+ * /vehicle/dynamics/initial_velocity: [0, 0, 0, 0, 0, 0]
+ * /vehicle/dynamics/mass: 98.0
+ * /vehicle/dynamics/period: 0.001
+ * /vehicle/dynamics/quadratic_damping: [-148.0, -148.0, ...
+ * /vehicle/dynamics/radius: 0.286
+ * /vehicle/dynamics/tensor: [8.0, 0.0, 0.0, 0...
+ * /vehicle/dynamics/topic_name: /dataNavigator
+ * /vehicle/dynamics/uwsim_period: 0.001
+ * /vehicle/num_actuators: 5
+ * /vehicle1/dynamics/external_force_topic: vehicle1/ForceSensor
+
+NODES
+  /
+    dynamics_vehicle1 (underwater_vehicle_dynamics/dynamics.py)
+    uwsim1 (uwsim/uwsim)
+
+[1mROS_MASTER_URI=http://localhost:11311[0m
+[1mprocess[dynamics_vehicle1-1]: started with pid [17794][0m
+[1mprocess[uwsim1-2]: started with pid [17795][0m
+[INFO] [1548067063.003687]: auv started!
+
+[33mWARN: gym.spaces.Box autodetected dtype as <type 'numpy.float32'>. Please provide explicit dtype.[0m
+********** Iteration 0 ************
+Optimizing...
+     pol_surr |    pol_entpen |       vf_loss |            kl |           ent
+    -5.36e-05 |      -0.02832 |       1.60659 |       0.00010 |       2.83173
+     -0.01182 |      -0.02825 |       1.40484 |       0.00253 |       2.82501
+     -0.01968 |      -0.02831 |       1.33970 |       0.00996 |       2.83074
+     -0.02405 |      -0.02840 |       1.20742 |       0.00982 |       2.84010
+Evaluating losses...
+     -0.02592 |      -0.02843 |       1.14300 |       0.01365 |       2.84347
+----------------------------------
+| EpisodesSoFar   | 1            |
+| EpLenMean       | 108          |
+| EpRewMean       | -1.23        |
+| EpThisIter      | 1            |
+| ev_tdlam_before | 0.00414      |
+| loss_ent        | 2.8434749    |
+| loss_kl         | 0.013652943  |
+| loss_pol_entpen | -0.028434748 |
+| loss_pol_surr   | -0.025922714 |
+| loss_vf_loss    | 1.1430007    |
+| TimeElapsed     | 31.8         |
+| TimestepsSoFar  | 108          |
+----------------------------------
+********** Iteration 1 ************
+Optimizing...
+     pol_surr |    pol_entpen |       vf_loss |            kl |           ent
+     -0.00028 |      -0.02837 |       1.50398 |       0.00883 |       2.83710
+     -0.00561 |      -0.02819 |       1.28424 |       0.00781 |       2.81863
+     -0.01036 |      -0.02792 |       1.17810 |       0.00548 |       2.79170
+     -0.01801 |      -0.02753 |       0.90470 |       0.01429 |       2.75258
+Evaluating losses...
+     -0.01904 |      -0.02754 |       0.78831 |       0.00876 |       2.75438
+----------------------------------
+| EpisodesSoFar   | 3            |
+| EpLenMean       | 143          |
+| EpRewMean       | 5.81         |
+| EpThisIter      | 2            |
+| ev_tdlam_before | 0.277        |
+| loss_ent        | 2.7543836    |
+| loss_kl         | 0.008762068  |
+| loss_pol_entpen | -0.027543835 |
+| loss_pol_surr   | -0.019036107 |
+| loss_vf_loss    | 0.7883107    |
+| TimeElapsed     | 63.6         |
+| TimestepsSoFar  | 428          |
+----------------------------------
+********** Iteration 2 ************
+Optimizing...
+     pol_surr |    pol_entpen |       vf_loss |            kl |           ent
+     -0.01848 |      -0.02734 |       4.14754 |       0.00838 |       2.73372
+     -0.02719 |      -0.02741 |       3.22826 |       0.01280 |       2.74130
+     -0.02656 |      -0.02710 |       2.82768 |       0.02437 |       2.70990
+     -0.02894 |      -0.02767 |       2.38658 |       0.01569 |       2.76653
+Evaluating losses...
+     -0.03084 |      -0.02828 |       2.20949 |       0.02571 |       2.82815
+----------------------------------
+| EpisodesSoFar   | 6            |
+| EpLenMean       | 117          |
+| EpRewMean       | 6.41         |
+| EpThisIter      | 3            |
+| ev_tdlam_before | 0.409        |
+| loss_ent        | 2.828153     |
+| loss_kl         | 0.025706321  |
+| loss_pol_entpen | -0.028281529 |
+| loss_pol_surr   | -0.030840354 |
+| loss_vf_loss    | 2.2094905    |
+| TimeElapsed     | 96.6         |
+| TimestepsSoFar  | 701          |
+----------------------------------
+********** Iteration 3 ************
+Optimizing...
+     pol_surr |    pol_entpen |       vf_loss |            kl |           ent
+     -0.00912 |      -0.02858 |       3.95044 |       0.01012 |       2.85788
+     -0.01389 |      -0.02962 |       3.22130 |       0.02843 |       2.96191
+     -0.01016 |      -0.02916 |       2.81977 |       0.04000 |       2.91558
+     -0.02376 |      -0.02893 |       2.66262 |       0.01601 |       2.89342
+Evaluating losses...
+     -0.02263 |      -0.02850 |       2.35348 |       0.02901 |       2.84977
+----------------------------------
+| EpisodesSoFar   | 9            |
+| EpLenMean       | 105          |
+| EpRewMean       | 4.79         |
+| EpThisIter      | 3            |
+| ev_tdlam_before | 0.444        |
+| loss_ent        | 2.8497734    |
+| loss_kl         | 0.029011246  |
+| loss_pol_entpen | -0.028497731 |
+| loss_pol_surr   | -0.0226291   |
+| loss_vf_loss    | 2.3534765    |
+| TimeElapsed     | 130          |
+| TimestepsSoFar  | 949          |
+----------------------------------
+********** Iteration 4 ************
+Optimizing...
+     pol_surr |    pol_entpen |       vf_loss |            kl |           ent
+      0.00333 |      -0.02736 |       8.90507 |       0.01112 |       2.73555
+     -0.01074 |      -0.02826 |       6.48295 |       0.01745 |       2.82644
+      0.01165 |      -0.02982 |       5.55241 |       0.07222 |       2.98208
+     -0.00937 |      -0.02925 |       5.62367 |       0.03068 |       2.92500
+Evaluating losses...
+     -0.01506 |      -0.02857 |       4.92797 |       0.02679 |       2.85653
+----------------------------------
+| EpisodesSoFar   | 14           |
+| EpLenMean       | 88.1         |
+| EpRewMean       | 7.06         |
+| EpThisIter      | 5            |
+| ev_tdlam_before | -0.378       |
+| loss_ent        | 2.8565316    |
+| loss_kl         | 0.026790438  |
+| loss_pol_entpen | -0.028565314 |
+| loss_pol_surr   | -0.015063502 |
+| loss_vf_loss    | 4.92797      |
+| TimeElapsed     | 163          |
+| TimestepsSoFar  | 1233         |
+----------------------------------
+********** Iteration 5 ************
+Optimizing...
+     pol_surr |    pol_entpen |       vf_loss |            kl |           ent
+      0.00711 |      -0.02831 |       9.56411 |       0.00144 |       2.83082
+      0.00312 |      -0.02804 |       9.30011 |       0.00924 |       2.80429
+      0.00537 |      -0.02930 |       7.72054 |       0.01282 |       2.93029
+      0.00219 |      -0.02988 |       7.20466 |       0.02096 |       2.98758
+Evaluating losses...
+     -0.00086 |      -0.02969 |       6.87896 |       0.02019 |       2.96867
+------------------------------------
+| EpisodesSoFar   | 17             |
+| EpLenMean       | 86.5           |
+| EpRewMean       | 8.3            |
+| EpThisIter      | 3              |
+| ev_tdlam_before | 0.0596         |
+| loss_ent        | 2.9686675      |
+| loss_kl         | 0.02018851     |
+| loss_pol_entpen | -0.029686674   |
+| loss_pol_surr   | -0.00086024776 |
+| loss_vf_loss    | 6.8789644      |
+| TimeElapsed     | 194            |
+| TimestepsSoFar  | 1471           |
+------------------------------------
+********** Iteration 6 ************
+terminate called after throwing an instance of 'pluginlib::LibraryUnloadException'
+  what():  According to the loaded plugin descriptions the class ForceSensor_Factory with base class type uwsim::SimulatedDeviceFactory does not exist. Declared types are  DredgeTool_Factory ForceSensor_Factory SimDev_Echo_Factory
+[33m[ WARN] [1548067064.584673601]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.[0m
+[0m[ INFO] [1548067064.584728986]: Loaded tree, 0 segments, 0 joints[0m
+[33m[ WARN] [1548067064.586141466]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.[0m
+[0m[ INFO] [1548067064.586158411]: Loaded tree, 0 segments, 0 joints[0m
+[33m[ WARN] [1548067064.588339038]: DVLSensorToROS is not able to find vehicle1_DVLSensor sensor.[0m
+[33m[ WARN] [1548067064.588562715]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.[0m
+[0m[ INFO] [1548067064.588588198]: Loaded tree, 0 segments, 0 joints[0m
+[33m[ WARN] [1548067064.588752435]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.[0m
+[0m[ INFO] [1548067064.588769895]: Loaded tree, 0 segments, 0 joints[0m
+[0m[ INFO] [1548067064.589669061]: Created spawnMarker service on SpawnMarker.[0m
+[0m[ INFO] [1548067064.598982941]: Created interactive marke service on uwsim_marker.[0m
+[0m[ INFO] [1548067066.584295758]: PATToROSOdom publisher on topic /vehicle1/data[0m
+[0m[ INFO] [1548067066.584418970]: ROSOdomToPAT subscriber on topic /vehicle1/dataNavigator[0m
+[0m[ INFO] [1548067066.586344213]: VirtualCameraToROSImage publisher on topic /vehicle1/camera1_info[0m
+[0m[ INFO] [1548067066.587323196]: ROSTwistToPAT subscriber on topic /vehicle1/velocityCommand[0m
+[0m[ INFO] [1548067066.587412199]: RangeSensorToROSRange publisher on topic /vehicle1/range[0m
+[0m[ INFO] [1548067066.587446324]: ROSPoseToPAT subscriber on topic /vehicle1/pose[0m
+[0m[ INFO] [1548067066.587506545]: Imu publisher on topic /vehicle1/imu[0m
+[0m[ INFO] [1548067066.587557452]: PressureSensor publisher on topic /vehicle1/pressure[0m
+[0m[ INFO] [1548067066.587590206]: VirtualCameraToROSImage publisher on topic /vehicle1/rangecamera_info[0m
+[0m[ INFO] [1548067066.587748606]: GPSSensor publisher on topic /vehicle1/gps[0m
+[0m[ INFO] [1548067066.588259222]:  MultibeamSensorToROS publisher on topic /vehicle1/multibeam[0m
+[0m[ INFO] [1548067066.588329124]: SimDev_Echo_ROSPublisher on topic /vehicle1/echo2[0m
+[0m[ INFO] [1548067066.588427976]: SimDev_Echo_ROSPublisher on topic /vehicle1/echo1[0m
+[0m[ INFO] [1548067066.588458122]: ROSOdomToPAT subscriber on topic /vehicle2/dataNavigator[0m
+[0m[ INFO] [1548067066.588493610]: ForceSensor_ROSPublisher on topic /vehicle1/ForceSensor[0m
+[0m[ INFO] [1548067068.047202731]: contactSensorToROS publisher on topic /vehicle1/contactSensor[0m
+/home/uwsim/uwsim_ws/install_isolated/lib/uwsim/uwsim: 行 23: 17796 已放弃               (核心已转储) rosrun uwsim uwsim_binary --dataPath ~/.uwsim/data $@

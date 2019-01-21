@@ -2,6 +2,7 @@ import numpy as np
 import math
 
 import rospy
+import roslaunch
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -104,4 +105,14 @@ class Trajectory:
     t_msg.pose.pose.orientation.y = np.cos(phi/2)*np.cos(psi/2)*np.sin(theta/2)+np.sin(phi/2)*np.cos(theta/2)*np.sin(psi/2)
     t_msg.pose.pose.orientation.z = np.cos(phi/2)*np.sin(psi/2)*np.cos(theta/2)-np.sin(phi/2)*np.sin(theta/2)*np.cos(psi/2)
     self.tr_pub.publish(t_msg)
+
+
+def launch_from_py(node_name, filename):
+    rospy.init_node(node_name, anonymous=True)
+    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    roslaunch.configure_logging(uuid)
+    launch = roslaunch.parent.ROSLaunchParent(uuid, [filename])
+    return launch
+ 
+    
 

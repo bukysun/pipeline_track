@@ -15,7 +15,7 @@ from std_msgs.msg import Int8
 
 import ros_utils as sensors
 
-from env_utils import cenline_extract, get_reward 
+from reward import cenline_extract, get_reward 
 
 
 class AuvUwsim(object):
@@ -32,10 +32,11 @@ class AuvUwsim(object):
         self.reset_pub = rospy.Publisher("/vehicle1/resetdata",Odometry ,queue_size=1)
         self.pause_pub = rospy.Publisher("/pause",Int8,queue_size=1)
 
-    def reset_sim(self, init_state):
+    def reset_sim(self, init_state = [-0.8,-3.5,7.8,0,0, 1.27 ,0, 0.0,0.0,0.0,0.0,0.0]):
         self.state = init_state
         self.step = 0
         self.last_rew = None
+        self.failed_steps = 0
         #set initial parameter
         msg = Odometry()
 
@@ -62,7 +63,10 @@ class AuvUwsim(object):
         flag = Int8()
         flag.data = 1
         self.pause_pub.publish(flag)
-        return self.state
+
+        ret_state = np.array([x, y, psi, u, v, r])
+
+        return ret_state, self.IG.cv_image
 
     def frame_step(self, action):
         # show image
@@ -85,9 +89,9 @@ class AuvUwsim(object):
         #cv2.waitKey(3)
         
         #publish action
-        tau1, tau2, tau3, tau4, tau5 = action
+        tau1, tau2 = action
         a_msg = Float64MultiArray()
-        a_msg.data = [tau1, tau2, tau3, tau4, tau5]
+        a_msg.data = [tau1, tau2, 0, 0, 0]
         self.Thruster_pub.publish(a_msg)
         
         #run to next frame
@@ -99,26 +103,38 @@ class AuvUwsim(object):
         # get reward
         x, y, z, phi, theta, psi, u, v, w, p, q, r = self.state
         img = copy.deepcopy(self.IG.cv_image)
-        cv2.imwrite("/home/uwsim/workspace/results/pipeline_track/record3/img%i.jpg" % self.step, img)
-        cv2.imshow("src", img)
-        cv2.waitKey(3)
+        #cv2.imwrite("/home/uwsim/workspace/results/pipeline_track/record3/img%i.jpg" % self.step, img)
+        #cv2.imshow("src", img)
+        #cv2.waitKey(3)
         rew = get_reward(img, u)
-        print("rew:", rew, "\t u:", u)
+        #print("rew:", rew, "\t u:", u)
+
+        #done = False
+        #if rew is None:
+        #    if self.last_rew is not None:
+        #        rew = self.last_rew
+        #        self.last_rew = None
+        #    else:
+        #        rew = 0
+        #        done = True
+        #else:
+        #    self.last_rew = rew
+        
+        # process the None reward
+        if rew is None:
+            rew = 0
+            self.fail_steps += 1
+        else:
+            self.fail_steps = 0
 
         done = False
-        if rew is None:
-            if self.last_rew is not None:
-                rew = self.last_rew
-                self.last_rew = None
-            else:
-                done = True
-        else:
-            self.last_rew = rew
-        
+        if self.fail_steps > 5:   # if rew cannot be continuously detected by 5 times, end the episode.
+            done = True 
 
         self.step += 1
 
-        return self.state, rew, done, {}
+        ret_state = [x, y, psi, u, v, r]
+        return ret_state, img, rew, done, {}
 
 
 
