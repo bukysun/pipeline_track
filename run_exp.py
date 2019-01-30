@@ -8,7 +8,7 @@ from env.env_util import make_env
 
 def train(args):
     from algo import pposgd_simple
-    from nn import cnn_policy
+    from nn import cnn_policy, cnn_lstm_policy
     import baselines.common.tf_util as U
     rank = MPI.COMM_WORLD.Get_rank()
     sess = U.single_threaded_session()
@@ -23,9 +23,10 @@ def train(args):
         logger.configure(format_strs=[])
     workerseed = args.seed + 10000 * MPI.COMM_WORLD.Get_rank() if args.seed is not None else None
     set_global_seeds(workerseed)
-    env = make_env(args.env_id, seed=args.seed)()
+    env = make_env(args.env_id, seed=args.seed, frame_stack=False)()
     def policy_fn(name, ob_space, ac_space):#pylint: disable=W0613
         return cnn_policy.CnnPolicy(name, ob_space, ac_space, hid_size=64, num_hid_layers=1)
+        #return cnn_lstm_policy.CnnSenLSTMPolicy(name, ob_space, ac_space, hid_size=64, num_hid_layers = 1)
     env.seed(workerseed)
 
     pposgd_simple.learn(env, policy_fn,

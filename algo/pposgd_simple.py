@@ -17,6 +17,7 @@ def traj_episode_generator(pi, env, horizon, stochastic):
 
     time.sleep(0.1)
     ob = env.reset()
+    state = pi.get_initial_state()
     time.sleep(0.1)
     cur_ep_ret = 0 # return in current episode
     cur_ep_len = 0 # len of current episode
@@ -26,7 +27,11 @@ def traj_episode_generator(pi, env, horizon, stochastic):
 
     while True:
         prevac = ac
-        ac, vpred = pi.act(stochastic, ob)
+        if pi.recurrent:
+            ac, vpred, state = pi.act(stochastic, ob, state)
+        else:
+            ac, vpred = pi.act(stochastic, ob)
+        
         obs.append(ob)
         news.append(new)
         acs.append(ac)
@@ -45,6 +50,7 @@ def traj_episode_generator(pi, env, horizon, stochastic):
                     "ep_ret":cur_ep_ret, "ep_len":cur_ep_len}
             time.sleep(0.1)
             ob = env.reset()
+            state = pi.get_initial_state()
             time.sleep(0.1)
             #print(env.unwrapped.target_heading)
             cur_ep_ret = 0; cur_ep_len = 0; t = 0
@@ -60,6 +66,7 @@ def traj_segment_generator(pi, env, horizon, stochastic):
     new = True # marks if we're on first timestep of an episode
     time.sleep(0.1)
     ob = env.reset()
+    state = pi.get_initial_state()
     time.sleep(0.1)
 
     cur_ep_ret = 0 # return in current episode
@@ -77,17 +84,23 @@ def traj_segment_generator(pi, env, horizon, stochastic):
     news = np.zeros(horizon, 'int32')
     acs = np.array([ac for _ in range(horizon)])
     prevacs = acs.copy()
+    states = []
+    if pi.recurrent:
+        states = [state for _ in range(horizon)]
 
     while True:
         prevac = ac
-        ac, vpred = pi.act(stochastic, ob)
+        if pi.recurrent:
+            ac, vpred, state_out = pi.act(stochastic, ob, state)
+        else:
+            ac, vpred = pi.act(stochastic, ob)
         # Slight weirdness here because we need value function at time T
         # before returning segment [0, T-1] so we get the correct
         # terminal value
         if t > 0 and t % horizon == 0:
             yield {"ob" : obs, "rew" : rews, "vpred" : vpreds, "new" : news,
                     "ac" : acs, "prevac" : prevacs, "nextvpred": vpred * (1 - new),
-                    "ep_rets" : ep_rets, "ep_lens" : ep_lens}
+                    "ep_rets" : ep_rets, "ep_lens" : ep_lens, "state": states}
             # Be careful!!! if you change the downstream algorithm to aggregate
             # several of these batches, then be sure to do a deepcopy
             ep_rets = []
@@ -98,6 +111,9 @@ def traj_segment_generator(pi, env, horizon, stochastic):
         news[i] = new
         acs[i] = ac
         prevacs[i] = prevac
+        if pi.recurrent:
+            states[i] = state
+            state = state_out
 
         ob, rew, new, _ = env.step(ac)
         rews[i] = rew
@@ -113,6 +129,7 @@ def traj_segment_generator(pi, env, horizon, stochastic):
             # delay for ros to reset the environment
             time.sleep(0.1)
             ob = env.reset()
+            state = pi.get_initial_state()
             time.sleep(0.1)
         t += 1
 
@@ -177,13 +194,20 @@ def learn(env, policy_fn,
     loss_names = ["pol_surr", "pol_entpen", "vf_loss", "kl", "ent"]
 
     var_list = pi.get_trainable_variables()
-    lossandgrad = U.function([ob_p, ob_f, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+    if pi.recurrent:
+        state_c = U.get_placeholder_cached(name="state_c")
+        state_h = U.get_placeholder_cached(name="state_h")
+        lossandgrad = U.function([ob_p, ob_f, state_c, state_h, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+        compute_losses = U.function([ob_p, ob_f, state_c, state_h, ac,  atarg, ret, lrmult], losses)
+    else:
+        lossandgrad = U.function([ob_p, ob_f, ac, atarg, ret, lrmult], losses + [U.flatgrad(total_loss, var_list)])
+        compute_losses = U.function([ob_p, ob_f, ac, atarg, ret, lrmult], losses)
+
     adam = MpiAdam(var_list, epsilon=adam_epsilon)
 
     assign_old_eq_new = U.function([],[], updates=[tf.assign(oldv, newv)
         for (oldv, newv) in zipsame(oldpi.get_variables(), pi.get_variables())])
-    compute_losses = U.function([ob_p, ob_f, ac, atarg, ret, lrmult], losses)
-
+    
     writer = U.FileWriter(log_dir)
     U.initialize()
     adam.sync()
@@ -245,7 +269,13 @@ def learn(env, policy_fn,
         ob_f = np.array(ob_f)
         vpredbefore = seg["vpred"] # predicted value function before udpate
         atarg = (atarg - atarg.mean()) / atarg.std() # standardized advantage function estimate
-        d = Dataset(dict(ob_p=ob_p, ob_f=ob_f, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not pi.recurrent)
+        
+        
+        if pi.recurrent:
+            sc, sh = zip(*seg["state"])
+            d = Dataset(dict(ob_p=ob_p, ob_f=ob_f, ac=ac, atarg=atarg, vtarg=tdlamret, state_c=np.array(sc), state_h=np.array(sh)), shuffle=not pi.recurrent)
+        else:
+            d = Dataset(dict(ob_p=ob_p, ob_f=ob_f, ac=ac, atarg=atarg, vtarg=tdlamret), shuffle=not pi.recurrent)
         optim_batchsize = optim_batchsize or ob.shape[0]
 
         if hasattr(pi, "ob_rms"): pi.ob_rms.update(ob_p) # update running mean/std for policy
@@ -257,7 +287,10 @@ def learn(env, policy_fn,
         for _ in range(optim_epochs):
             losses = [] # list of tuples, each of which gives the loss for a minibatch
             for batch in d.iterate_once(optim_batchsize):
-                lg = lossandgrad(batch["ob_p"], batch["ob_f"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                if pi.recurrent:
+                    lg = lossandgrad(batch["ob_p"], batch["ob_f"], batch["state_c"], batch["state_h"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+                else:
+                    lg = lossandgrad(batch["ob_p"], batch["ob_f"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
                 newlosses = lg[:-1]
                 g = lg[-1]
                 adam.update(g, optim_stepsize * cur_lrmult)
@@ -267,7 +300,10 @@ def learn(env, policy_fn,
         logger.log2("Evaluating losses...")
         losses = []
         for batch in d.iterate_once(optim_batchsize):
-            newlosses = compute_losses(batch["ob_p"], batch["ob_f"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+            if pi.recurrent:
+                newlosses = compute_losses(batch["ob_p"], batch["ob_f"], batch["state_c"], batch["state_h"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
+            else:
+                newlosses = compute_losses(batch["ob_p"], batch["ob_f"], batch["ac"], batch["atarg"], batch["vtarg"], cur_lrmult)
             losses.append(newlosses)
         meanlosses,_,_ = mpi_moments(losses, axis=0)
         logger.log2(fmt_row(13, meanlosses))

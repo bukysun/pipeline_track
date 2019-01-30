@@ -17,8 +17,20 @@ def lines_extract_from_depth(img):
 
     return lines
 
+def plot_histogram(x):
+    import matplotlib.pyplot as plt
+    n, bins, patches = plt.hist(x=x, bins=36, range=(-np.pi, np.pi),  color='#0504aa', alpha=0.7, rwidth=0.85)
+    plt.grid(axis='y', alpha=0.75)
+    plt.xlabel('The angle between the lines and x axis.')
+    plt.ylabel('Frequency')
+    plt.text(23, 45, r'$\mu=15, b=3$')
+    maxfreq = n.max()
+    plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+    plt.show()
+
 def lines_filter(lines):
     cnts, edgs = np.histogram(lines[:, 1], bins=36, range=(-np.pi, np.pi))
+    #plot_histogram(lines[:, 1])
     #print(cnts)
     #print(edgs)
 
@@ -63,15 +75,19 @@ def cenline_extract(img, ret_type = "polar"):
     """
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(img, (3,3), 0)
+    #cv2.imwrite("tmp_results/grayandblur.jpg", gray)
     edges = cv2.Canny(gray, 50, 150)
+    #cv2.imwrite("tmp_results/edge.jpg", edges)
     #cv2.imshow("i", edges)
     #cv2.waitKey(0)
     lines = cv2.HoughLinesP(edges, 1, np.pi/180, 25, 1, 10)
     if lines is not None: 
         lines = np.squeeze(lines, axis = 1)
+        #tmp_img = copy.deepcopy(img)
         #for l in lines:
         #    x1, y1, x2, y2 = l
-        #    cv2.line(img, (x1,y1), (x2, y2), (0, 0, 255), 2)
+        #    cv2.line(tmp_img, (x1,y1), (x2, y2), (0, 0, 255), 2)
+        #cv2.imwrite("tmp_results/hough.jpg", tmp_img)
         #cv2.imshow("s", img)
         #cv2.waitKey(0)
         lines_polar = [list(line_xy2polar(l[:2], l[2:])) for l in lines]
@@ -172,7 +188,7 @@ def get_reward(img, u):
 
 
 if __name__ == "__main__":
-    img = cv2.imread("/home/uwsim/workspace/results/pipeline_track/record2/img16.jpg")
+    img = cv2.imread("/home/uwsim/workspace/results/pipeline_track/record2/img10.jpg")
     print(img.shape)
     res = cenline_extract(img, "points")
     print(get_reward(img, 1))
@@ -183,5 +199,6 @@ if __name__ == "__main__":
         #print(img.shape)
         cv2.imshow("o", img)
         cv2.waitKey(0)
+        cv2.imwrite("tmp_results/cen_line.jpg", img)
     
     

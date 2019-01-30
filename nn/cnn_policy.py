@@ -11,6 +11,7 @@ class CnnPolicy(object):
         with tf.variable_scope(name):
             self._init(ob_space, ac_space, hid_size, num_hid_layers, kind)
             self.scope = tf.get_variable_scope().name
+            self.recurrent = False
 
     def _init(self, ob_space, ac_space, hid_size, num_hid_layers, kind):
         assert isinstance(ob_space, tuple)
