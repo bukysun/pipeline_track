@@ -32,16 +32,12 @@ class AuvUwsim(object):
         self.reset_pub = rospy.Publisher("/vehicle1/resetdata",Odometry ,queue_size=1)
         self.pause_pub = rospy.Publisher("/pause",Int8,queue_size=1)
 
-    def reset_sim(self, init_state = [-0.8,-3.5,7.8,0,0, 1.27 ,0, 0.0,0.0,0.0,0.0,0.0]):
-        self.state = init_state
-        self.step = 0
-        self.last_rew = None
-        self.failed_steps = 0
-        #set initial parameter
-        msg = Odometry()
-
+    
+    def state2msg(self, state):
+        # convert state into a msg passed to set the vehicle
         x, y, z, phi, theta, psi, u, v, w, p, q, r = self.state
-
+        
+        msg = Odometry()
         msg.pose.pose.position.x = x
         msg.pose.pose.position.y = y
         msg.pose.pose.position.z = z # 4.5
@@ -56,7 +52,30 @@ class AuvUwsim(object):
         msg.twist.twist.angular.x = p
         msg.twist.twist.angular.y = q
         msg.twist.twist.angular.z = r
+        return msg
 
+    def action2msg(self, action):
+        tau1, tau2 = action
+        msg = Float64MultiArray()
+        msg.data = [tau1, tau2, 0, 0, 0]
+        return msg
+
+
+    def get_retstate(self, state):
+        x, y, z, phi, theta, psi, u, v, w, p, q, r = self.state
+        return [x, y, psi, u, v, r]
+    
+    def reset_sim(self, init_state = [-0.8,-3.5,7.8,0,0, 1.27 ,0, 0.0,0.0,0.0,0.0,0.0]):
+        self.state = init_state
+        
+        #initialize flag variables
+        self.step = 0
+        self.last_rew = None
+        self.last_feat = None
+        self.failed_steps = 0
+        
+        #set initial state
+        msg = self.state2msg(self.state)
         self.reset_pub.publish(msg)
 
         #publish reset_flag
@@ -64,34 +83,17 @@ class AuvUwsim(object):
         flag.data = 1
         self.pause_pub.publish(flag)
 
-        ret_state = np.array([x, y, psi, u, v, r])
+        ret_state = np.array(self.get_retstate(self.state))
+        
+        img = copy.deepcopy(self.IG.cv_image)
+        u = self.state[6]
+        _, feat = get_reward(img, u)
 
-        return ret_state, self.IG.cv_image
+        return ret_state, self.IG.cv_image, feat
 
     def frame_step(self, action):
-        # show image
-        #cv2.imshow("camera", self.IG.cv_image)
-        #cv2.imshow("depthImage", self.DI.depth_image)
-        #res = cenline_extract(img, "points")
-        #if res is not None:
-        #    x1, y1, x2, y2 = res
-        #    cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        #else:
-        #    cv2.imwrite("fail.jpg", img)
-        #    img = cv2.imread("fail.jpg")
-        #    res = cenline_extract(img, "points")
-        #    if res is not None:
-        #        x1, y1, x2, y2 = res
-        #        cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 2)
-   
-        #cv2.imshow("src", img)
-        ##cv2.imshow("tar", res_img)
-        #cv2.waitKey(3)
-        
         #publish action
-        tau1, tau2 = action
-        a_msg = Float64MultiArray()
-        a_msg.data = [tau1, tau2, 0, 0, 0]
+        a_msg = self.action2msg(action)
         self.Thruster_pub.publish(a_msg)
         
         #run to next frame
@@ -101,24 +103,16 @@ class AuvUwsim(object):
         self.state = np.append(self.State_p.p, self.State_v.v)
 
         # get reward
-        x, y, z, phi, theta, psi, u, v, w, p, q, r = self.state
         img = copy.deepcopy(self.IG.cv_image)
-        #cv2.imwrite("/home/uwsim/workspace/results/pipeline_track/record3/img%i.jpg" % self.step, img)
-        #cv2.imshow("src", img)
-        #cv2.waitKey(3)
-        rew = get_reward(img, u)
-        #print("rew:", rew, "\t u:", u)
+        u = self.state[6]
+        rew, feat = get_reward(img, u)
 
-        #done = False
-        #if rew is None:
-        #    if self.last_rew is not None:
-        #        rew = self.last_rew
-        #        self.last_rew = None
-        #    else:
-        #        rew = 0
-        #        done = True
-        #else:
-        #    self.last_rew = rew
+        # process None feat
+        if feat is None:
+            if self.last_feat is not None:
+                feat = self.last_feat
+        else:
+            self.last_feat = feat
         
         # process the None reward
         if rew is None:
@@ -127,20 +121,14 @@ class AuvUwsim(object):
         else:
             self.fail_steps = 0
 
+        # judge end condition: fail_step > 5
         done = False
         if self.fail_steps > 5:   # if rew cannot be continuously detected by 5 times, end the episode.
             done = True 
-
+        
+        ret_state = self.get_retstate(self.state)
+        
         self.step += 1
-
-        ret_state = [x, y, psi, u, v, r]
-        return ret_state, img, rew, done, {}
-
-
-
-
-
-
-
+        return ret_state, img, rew, done, feat
 
 

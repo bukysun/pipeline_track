@@ -79,7 +79,7 @@ class CnnLSTMPolicy(object):
             self.pd = pdtype.pdfromflat(logits)
 
         stochastic = tf.placeholder(dtype=tf.bool, shape=())
-        ac = self.pd.sample()
+        ac = U.switch(stochastic, self.pd.sample(), self.pd.mode())
         self._act = U.function([stochastic, ob_p, ob_f, c_in, h_in], [ac, self.vpred, lstm_c, lstm_h])
 
     def act(self, stochastic, ob, state_in):
@@ -168,7 +168,7 @@ class CnnPhyLSTMPolicy(CnnLSTMPolicy):
             self.pd = pdtype.pdfromflat(logits)
 
         stochastic = tf.placeholder(dtype=tf.bool, shape=())
-        ac = self.pd.sample()
+        ac = U.switch(stochastic, self.pd.sample(), self.pd.mode())
         self._act = U.function([stochastic, ob_p, ob_f, c_in, h_in], [ac, self.vpred, lstm_c, lstm_h])
 
 class CnnSenLSTMPolicy(CnnLSTMPolicy):
@@ -239,7 +239,7 @@ class CnnSenLSTMPolicy(CnnLSTMPolicy):
             self.pd = pdtype.pdfromflat(logits)
 
         stochastic = tf.placeholder(dtype=tf.bool, shape=())
-        ac = self.pd.sample()
+        ac = U.switch(stochastic, self.pd.sample(), self.pd.mode())
         self._act = U.function([stochastic, ob_p, ob_f, c_in, h_in], [ac, self.vpred, lstm_c, lstm_h])
    
 

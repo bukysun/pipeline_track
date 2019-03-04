@@ -5,9 +5,44 @@ from gym.envs.registration import register
 import numpy as np
 import cv2
 from collections import deque
+import os 
+import time
 
 _REGISTERED = False
 
+class CameraRecEnv(gym.Wrapper):
+    def __init__(self, env, save_path):
+        """Record the frames of camera as video."""
+        gym.Wrapper.__init__(self, env)
+        self.save_path = save_path
+        if not os.path.exists(self.save_path):
+            os.mkdir(self.save_path)
+        self.fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+        self.video_index = 0
+        self.init_time_str = time.strftime("%Y-%m-%d %H:%M", time.localtime(time.time()))
+ 
+
+    def reset(self, *args, **kwargs):
+        obs = self.env.reset(*args, **kwargs)
+        self.frame_rec = [self.env.unwrapped.camera]
+        return obs
+
+    def step(self, action):
+        obs, rew, done, info = self.env.step(action)
+        self.frame_rec.append(self.env.unwrapped.camera)
+        if done:    #if True, record the frames in frame_rec
+            print(done)
+            print(len(self.frame_rec))
+            video_path = self.get_video_name(self.save_path)
+            video_writer = cv2.VideoWriter(video_path, self.fourcc, 30, self.env.unwrapped.camera.shape[:-1][::-1])
+            for frame in self.frame_rec:
+                video_writer.write(frame)
+            video_writer.release()
+            self.video_index += 1
+        return obs, rew, done, info
+
+    def get_video_name(self, path_name):
+        return os.path.join(path_name, "video_" + self.init_time_str + "_%d.avi"%self.video_index)
 
 class NoopResetEnv(gym.Wrapper):
     def __init__(self, env, noop_max=30):
@@ -135,10 +170,11 @@ class LazyFrames(object):
         return self._force()[i]
 
 
-def make_env(env_id, seed=0, frame_stack=False, *args, **kwargs):
+def make_env(env_id, seed=0, frame_stack=False, save_camera = False, save_path = "saved_camera", *args, **kwargs):
     global _REGISTERED
     if not _REGISTERED:
         register(id="PipelineTrack-v1", entry_point="env.pipeline_track_env:PipelineTrackEnv", kwargs=kwargs)
+        register(id="SimPipelineTrack-v1", entry_point="env.sim_pipeline_tracking:SimplePipelineTrackEnv", kwargs=kwargs)
         _REGISTERED = True
 
     def _thunk():
@@ -146,9 +182,12 @@ def make_env(env_id, seed=0, frame_stack=False, *args, **kwargs):
         env.seed(seed)
         if env_id == "PipelineTrack-v1":
             env = NoopResetEnv(env, noop_max=10)
-            env = WarpFrame(env)
-            if frame_stack:
-                env = FrameStack(env, 4)
+            if save_camera:
+                env = CameraRecEnv(env, save_path)
+            if not kwargs['no_cnn']:
+                env = WarpFrame(env)
+                if frame_stack:
+                    env = FrameStack(env, 4)
         return env 
     return _thunk
 

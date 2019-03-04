@@ -217,8 +217,6 @@ def learn(env, policy_fn,
     seg_gen = traj_segment_generator(pi, env, timesteps_per_actorbatch, stochastic=True)
     traj_gen = traj_episode_generator(pi, env, timesteps_per_actorbatch, stochastic=sample_stochastic)
 
-
-
     episodes_so_far = 0
     timesteps_so_far = 0
     iters_so_far = 0
@@ -337,7 +335,7 @@ def sample_trajectory(load_model_path, max_sample_traj, traj_gen, task_name, sam
     U.load_state(load_model_path)
     sample_trajs = []
     for iters_so_far in range(max_sample_traj):
-        logger.log("********** Iteration %i ************"%iters_so_far)
+        logger.log2("********** Iteration %i ************"%iters_so_far)
         traj = traj_gen.next()
         ob, new, ep_ret, ac, rew, ep_len = traj['ob'], traj['new'], traj['ep_ret'], traj['ac'], traj['rew'], traj['ep_len']
         logger.record_tabular("ep_ret", ep_ret)
@@ -349,7 +347,7 @@ def sample_trajectory(load_model_path, max_sample_traj, traj_gen, task_name, sam
         sample_trajs.append(traj_data)
 
     sample_ep_rets = [traj["ep_ret"] for traj in sample_trajs]
-    logger.log("Average total return: %f"%(sum(sample_ep_rets)/len(sample_ep_rets)))
+    logger.log2("Average total return: %f"%(sum(sample_ep_rets)/len(sample_ep_rets)))
  
 def flatten_lists(listoflists):
     return [el for list_ in listoflists for el in list_]

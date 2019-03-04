@@ -7,8 +7,8 @@ from env.env_util import make_env
 
 
 def train(args):
-    from algo import pposgd_simple
-    from nn import cnn_policy, cnn_lstm_policy
+    from algo import pposgd_simple, pposgd_origin
+    from nn import cnn_policy, cnn_lstm_policy, mlp_policy
     import baselines.common.tf_util as U
     rank = MPI.COMM_WORLD.Get_rank()
     sess = U.single_threaded_session()
@@ -23,10 +23,13 @@ def train(args):
         logger.configure(format_strs=[])
     workerseed = args.seed + 10000 * MPI.COMM_WORLD.Get_rank() if args.seed is not None else None
     set_global_seeds(workerseed)
-    env = make_env(args.env_id, seed=args.seed, frame_stack=False)()
+    env = make_env(args.env_id, seed=args.seed, frame_stack=False, 
+                    save_camera=True, save_path = "../saved_camera",
+                    no_cnn = False)()
     def policy_fn(name, ob_space, ac_space):#pylint: disable=W0613
         return cnn_policy.CnnPolicy(name, ob_space, ac_space, hid_size=64, num_hid_layers=1)
         #return cnn_lstm_policy.CnnSenLSTMPolicy(name, ob_space, ac_space, hid_size=64, num_hid_layers = 1)
+        #return mlp_policy.MlpPolicy(name, ob_space, ac_space, hid_size=64, num_hid_layers = 1) 
     env.seed(workerseed)
 
     pposgd_simple.learn(env, policy_fn,
@@ -37,7 +40,7 @@ def train(args):
         gamma=0.99, lam=0.95,
         schedule='linear', save_per_iter=100, 
         ckpt_dir=args.checkpoint_dir, log_dir=args.log_dir, task_name=task_name,
-        task=args.task, load_model_path=args.load_model_path, sample_stochastic=True
+        task=args.task, load_model_path=args.load_model_path, sample_stochastic=args.sample_stochastic
     )
     env.close()
  
@@ -46,6 +49,9 @@ def main():
     import argparse
     import rospy
     from env.ros_utils import launch_from_py
+    import os
+
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "%d, %d" %(500, 70)
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--env_id", type=str, default="PipelineTrack-v1")
     parser.add_argument("--num_timesteps", type=int, default=100000)
@@ -55,6 +61,7 @@ def main():
     parser.add_argument('--taskname', help='name of task', type=str, default="origin") 
     parser.add_argument('--task', help="train or sample trajectory", type=str, default="train")
     parser.add_argument('--load_model_path', type=str, default=None)
+    parser.add_argument('--sample_stochastic', type=bool, default=True)
 
     args = parser.parse_args()
 

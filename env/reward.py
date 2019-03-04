@@ -179,11 +179,11 @@ def get_reward(img, u):
             d = dist_p2line((width/2, height/2), (x1, y1), (x2, y2))
             max_d = np.sqrt((width/2)**2 + (height/2)**2)
             rew = u * (abs(np.cos(theta)) - d / max_d)
-            return rew
+            return rew, (np.cos(theta), d)
         else:
-            return None
+            return None, None
     except IndexError:
-        return None
+        return None, None
      
 
 
